@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Конвертер SVG в PNG</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #3e8e41;
+        }
+        .instructions {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Конвертер SVG в PNG</h1>
+        <p>Этот инструмент конвертирует favicon.svg в favicon.png</p>
+        
+        <div id="svg-container"></div>
+        <canvas id="canvas" width="64" height="64"></canvas>
+        
+        <button id="convert-btn">Конвертировать и скачать</button>
+        
+        <div class="instructions">
+            <h3>Инструкции:</h3>
+            <ol>
+                <li>Нажмите кнопку "Конвертировать и скачать"</li>
+                <li>Сохраните PNG-файл</li>
+                <li>Переместите его в директорию img с именем favicon.png</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const svgContainer = document.getElementById('svg-container');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const convertBtn = document.getElementById('convert-btn');
+            
+            // Загрузка SVG
+            fetch('favicon.svg')
+                .then(response => response.text())
+                .then(svgText => {
+                    svgContainer.innerHTML = svgText;
+                    const svgElement = svgContainer.querySelector('svg');
+                    svgElement.style.width = '128px';
+                    svgElement.style.height = '128px';
+                })
+                .catch(error => {
+                    console.error('Ошибка загрузки SVG:', error);
+                    svgContainer.innerHTML = '<p style="color: red;">Ошибка загрузки SVG. Убедитесь, что файл favicon.svg находится в той же директории.</p>';
+                });
+            
+            // Конвертация и скачивание
+            convertBtn.addEventListener('click', () => {
+                const svgElement = svgContainer.querySelector('svg');
+                if (!svgElement) {
+                    alert('SVG не загружен');
+                    return;
+                }
+                
+                const svgData = new XMLSerializer().serializeToString(svgElement);
+                const img = new Image();
+                
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, 64, 64);
+                    
+                    // Создание ссылки для скачивания
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = dataUrl;
+                    downloadLink.download = 'favicon.png';
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                };
+                
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            });
+        });
+    </script>
+</body>
+</html> 
