@@ -8,8 +8,15 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'users.json');
 
+// Настройка CORS
+const corsOptions = {
+    origin: '*', // Разрешаем запросы с любого источника
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Разрешенные методы
+    allowedHeaders: ['Content-Type', 'Authorization'] // Разрешенные заголовки
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
@@ -34,7 +41,9 @@ try {
 // Сохранение данных в файл
 function saveData() {
     try {
+        console.log('Сохранение данных в файл...');
         fs.writeFileSync(DATA_FILE, JSON.stringify(users), 'utf8');
+        console.log('Данные успешно сохранены в файл');
     } catch (err) {
         console.error('Ошибка при сохранении данных:', err);
     }
@@ -276,17 +285,28 @@ app.put('/api/user/:username', (req, res) => {
             return res.status(404).json({ message: 'Пользователь не найден' });
         }
         
-        // Обновляем данные пользователя, сохраняя username
-        users[username] = { ...userData, username };
+        // Добавляем дополнительное логирование
+        console.log('Текущие данные пользователя:', JSON.stringify(users[username]));
         
-        // Сохраняем данные
-        saveData();
-        
-        console.log(`Пользователь ${username} успешно обновлен`);
-        res.json(users[username]);
+        try {
+            // Обновляем данные пользователя, сохраняя username
+            users[username] = { ...userData, username };
+            
+            // Проверяем, что данные обновились корректно
+            console.log('Обновленные данные пользователя:', JSON.stringify(users[username]));
+            
+            // Сохраняем данные
+            saveData();
+            
+            console.log(`Пользователь ${username} успешно обновлен`);
+            return res.json(users[username]);
+        } catch (updateError) {
+            console.error('Ошибка при обновлении данных:', updateError);
+            return res.status(500).json({ message: 'Ошибка при обновлении данных: ' + updateError.message });
+        }
     } catch (err) {
         console.error('Ошибка при обновлении данных пользователя:', err);
-        res.status(500).json({ message: 'Ошибка сервера при обновлении данных пользователя' });
+        return res.status(500).json({ message: 'Ошибка сервера при обновлении данных пользователя: ' + err.message });
     }
 });
 

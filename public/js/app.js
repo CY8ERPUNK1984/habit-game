@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const habitType = button.getAttribute('data-habit');
                 
                 if (!currentUser) {
-                    alert('Пожалуйста, сначала настройте профиль');
+                    showNotification('Пожалуйста, сначала настройте профиль', 'error');
                     return;
                 }
                 
@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             value = parseFloat(newWeight);
                             
                             if (isNaN(value) || value <= 0) {
-                                alert('Пожалуйста, введите корректное значение веса');
+                                showNotification('Пожалуйста, введите корректное значение веса', 'error');
                                 return;
                             }
                             break;
@@ -208,8 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Показать конфетти
                     showConfetti();
                 } catch (error) {
-                    console.error('Ошибка:', error);
-                    alert('Произошла ошибка при обновлении привычки');
+                    console.error('Ошибка при обновлении привычки:', error);
+                    showNotification('Произошла ошибка при обновлении привычки: ' + error.message, 'error');
                 }
             });
         });
@@ -646,17 +646,36 @@ document.addEventListener('DOMContentLoaded', () => {
             createdAt: new Date().toISOString()
         };
         
+        // Сохраняем копию текущих задач
+        const originalTodos = [...currentUser.todos];
+        
         // Добавляем задачу в массив пользователя
         currentUser.todos.push(newTodo);
         
         // Сохраняем обновленные данные
-        saveUserData();
-        
-        // Очищаем поле ввода
-        todoInput.value = '';
-        
-        // Обновляем отображение задач
-        renderTodoItems();
+        saveUserData()
+            .then(() => {
+                // Очищаем поле ввода
+                todoInput.value = '';
+                
+                // Обновляем отображение задач
+                renderTodoItems();
+                
+                // Показываем уведомление
+                showNotification('Задача добавлена!', 'success');
+            })
+            .catch(error => {
+                console.error('Ошибка при сохранении задачи:', error);
+                
+                // Восстанавливаем оригинальный список задач
+                currentUser.todos = originalTodos;
+                
+                // Обновляем отображение задач
+                renderTodoItems();
+                
+                // Показываем уведомление с детальной информацией об ошибке
+                showNotification('Ошибка при добавлении задачи: ' + error.message, 'error');
+            });
     }
     
     function renderTodoItems() {
@@ -724,30 +743,76 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Если задача была отмечена как выполненная (и не была выполнена ранее)
         if (isCompleted && !wasCompletedBefore) {
-            // Начисляем XP
+            // Получаем XP в зависимости от размера задачи
             const xpAmount = getXpForTodoSize(todo.size);
-            addExperience(xpAmount);
             
-            // Показываем уведомление
-            showNotification(`Задача выполнена! +${xpAmount} XP`, 'success');
+            // Обновляем XP локально перед сохранением
+            const currentXp = currentUser.xp || 0;
+            currentUser.xp = currentXp + xpAmount;
+            
+            // Сохраняем все изменения (включая статус задачи и обновленный XP)
+            saveUserData()
+                .then(() => {
+                    // Показываем уведомление
+                    showNotification(`Задача выполнена! +${xpAmount} XP`, 'success');
+                    
+                    // Показываем конфетти
+                    showConfetti();
+                    
+                    // Обновляем отображение задач
+                    renderTodoItems();
+                })
+                .catch(error => {
+                    console.error('Ошибка при обновлении задачи:', error);
+                    showNotification('Ошибка при обновлении задачи: ' + error.message, 'error');
+                    
+                    // Восстанавливаем статус задачи и XP
+                    todo.completed = wasCompletedBefore;
+                    currentUser.xp = currentXp;
+                    renderTodoItems();
+                });
+        } else {
+            // Сохраняем обновленные данные
+            saveUserData()
+                .then(() => {
+                    // Обновляем отображение задач
+                    renderTodoItems();
+                })
+                .catch(error => {
+                    console.error('Ошибка при сохранении данных:', error);
+                    showNotification('Ошибка при обновлении задачи: ' + error.message, 'error');
+                    
+                    // Восстанавливаем статус задачи
+                    todo.completed = wasCompletedBefore;
+                    renderTodoItems();
+                });
         }
-        
-        // Сохраняем обновленные данные
-        saveUserData();
-        
-        // Обновляем отображение задач
-        renderTodoItems();
     }
     
     function deleteTodoItem(todoId) {
+        // Сохраняем копию задач перед удалением
+        const originalTodos = [...currentUser.todos];
+        
         // Удаляем задачу из массива
         currentUser.todos = currentUser.todos.filter(todo => todo.id !== todoId);
         
         // Сохраняем обновленные данные
-        saveUserData();
-        
-        // Обновляем отображение задач
-        renderTodoItems();
+        saveUserData()
+            .then(() => {
+                // Обновляем отображение задач
+                renderTodoItems();
+                
+                // Показываем уведомление
+                showNotification('Задача удалена', 'info');
+            })
+            .catch(error => {
+                console.error('Ошибка при удалении задачи:', error);
+                showNotification('Ошибка при удалении задачи: ' + error.message, 'error');
+                
+                // Восстанавливаем оригинальный список задач в случае ошибки
+                currentUser.todos = originalTodos;
+                renderTodoItems();
+            });
     }
     
     function getXpForTodoSize(size) {
@@ -760,35 +825,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function saveUserData() {
-        try {
-            console.log('Сохранение данных пользователя:', JSON.stringify(currentUser));
-            
-            const response = await fetch(`${API_URL}/user/${currentUser.username}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(currentUser)
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Ошибка сохранения данных:', errorData);
-                throw new Error(errorData.message || 'Ошибка сохранения данных');
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log('Сохранение данных пользователя:', JSON.stringify(currentUser));
+                
+                // Сначала получаем актуальные данные с сервера
+                const getResponse = await fetch(`${API_URL}/user/${currentUser.username}`);
+                
+                if (!getResponse.ok) {
+                    throw new Error('Не удалось получить актуальные данные пользователя');
+                }
+                
+                const serverData = await getResponse.json();
+                console.log('Актуальные данные с сервера:', serverData);
+                
+                // Объединяем данные с сервера и клиента, приоритет отдаем клиентским данным
+                const updatedData = {
+                    ...serverData,
+                    ...currentUser
+                };
+                
+                console.log('Данные для отправки на сервер:', updatedData);
+                
+                const response = await fetch(`${API_URL}/user/${currentUser.username}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                console.log('Статус ответа:', response.status);
+                const responseText = await response.text();
+                console.log('Текст ответа:', responseText);
+                
+                if (!response.ok) {
+                    let errorMessage = 'Ошибка сохранения данных';
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        console.error('Ошибка при парсинге ответа:', e);
+                    }
+                    throw new Error(errorMessage);
+                }
+                
+                try {
+                    const responseData = JSON.parse(responseText);
+                    console.log('Данные успешно сохранены:', responseData);
+                    
+                    // Обновляем локальные данные пользователя
+                    currentUser = responseData;
+                    
+                    // Обновление интерфейса
+                    updateUI();
+                    
+                    resolve(responseData);
+                } catch (e) {
+                    console.error('Ошибка при парсинге данных ответа:', e);
+                    reject(new Error('Ошибка при обработке ответа сервера'));
+                }
+                
+            } catch (error) {
+                console.error('Ошибка сохранения данных:', error);
+                // Не показываем уведомление здесь, а передаем ошибку вызывающему коду
+                reject(error);
             }
-            
-            const responseData = await response.json();
-            console.log('Данные успешно сохранены:', responseData);
-            
-            // Обновляем локальные данные пользователя
-            currentUser = responseData;
-            
-            // Обновление интерфейса
-            updateUI();
-            
-        } catch (error) {
-            console.error('Ошибка сохранения данных:', error);
-            showNotification('Произошла ошибка при сохранении данных: ' + error.message, 'error');
-        }
+        });
     }
 });
