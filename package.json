@@ -1,0 +1,61 @@
+{
+  "name": "habit-game",
+  "version": "0.2.0",
+  "description": "Геймификация жизни - веб-приложение для формирования привычек и достижения целей",
+  "private": true,
+  "workspaces": [
+    "src/frontend",
+    "src/backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "npm run dev --workspace=src/frontend",
+    "dev:backend": "npm run dev --workspace=src/backend",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "npm run build --workspace=src/frontend",
+    "build:backend": "npm run build --workspace=src/backend",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "start:frontend": "npm run start --workspace=src/frontend",
+    "start:backend": "npm run start --workspace=src/backend",
+    "test": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "test:unit": "jest --testPathPattern=src/tests/unit",
+    "test:integration": "jest --testPathPattern=src/tests/integration",
+    "test:e2e": "cypress run",
+    "test:coverage": "jest --coverage",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "npm run lint --workspace=src/frontend",
+    "lint:backend": "npm run lint --workspace=src/backend",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stepanzinin/habit-game.git"
+  },
+  "keywords": [
+    "habits",
+    "gamification",
+    "productivity",
+    "self-improvement"
+  ],
+  "author": "Степан Зинин",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/stepanzinin/habit-game/issues"
+  },
+  "homepage": "https://github.com/stepanzinin/habit-game#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^17.7.1",
+    "@commitlint/config-conventional": "^17.7.0",
+    "concurrently": "^8.2.1",
+    "cypress": "^13.3.0",
+    "husky": "^8.0.3",
+    "jest": "^29.7.0",
+    "lint-staged": "^14.0.1",
+    "prettier": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
