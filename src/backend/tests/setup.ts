@@ -5,6 +5,11 @@ import dotenv from 'dotenv';
 // Загрузка переменных окружения
 dotenv.config();
 
+// Устанавливаем JWT_SECRET для тестов, если он не определен
+if (!process.env.JWT_SECRET) {
+  process.env.JWT_SECRET = 'test-jwt-secret';
+}
+
 // Переменная для хранения MongoDB сервера в памяти
 let mongoServer: MongoMemoryServer;
 

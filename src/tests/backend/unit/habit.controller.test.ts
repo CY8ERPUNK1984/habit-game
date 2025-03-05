@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createHabit, getHabits } from '../../../backend/controllers/habit.controller';
+import { createHabit, getHabits, getHabitById, updateHabit, deleteHabit } from '../../../backend/controllers/habit.controller';
 import HabitModel, { HabitFrequency, HabitCategory, HabitPriority } from '../../../backend/models/Habit.model';
 import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../../../backend/middleware/auth.middleware';
@@ -18,7 +18,8 @@ describe('Habit Controller', () => {
     // Создаём мок для запроса
     mockRequest = {
       body: {},
-      user: { id: 'user123' }
+      user: { id: 'user123' },
+      params: {}
     };
     
     // Создаём мок для ответа
@@ -242,6 +243,398 @@ describe('Habit Controller', () => {
       expect(mockResponse.json).toHaveBeenCalledWith({
         success: false,
         error: 'Внутренняя ошибка сервера'
+      });
+    });
+  });
+  
+  describe('getHabitById', () => {
+    it('должен возвращать привычку по ID', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit123' };
+      
+      // Мокаем данные привычки
+      const mockHabit = {
+        _id: 'habit123',
+        title: 'Утренняя зарядка',
+        description: 'Зарядка по утрам для бодрости',
+        user: 'user123',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH,
+        priority: HabitPriority.MEDIUM,
+        streak: 0,
+        completedToday: false,
+        completionHistory: []
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(mockHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await getHabitById(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что findById вызван с правильными параметрами
+      expect(mockFindById).toHaveBeenCalledWith('habit123');
+      
+      // Проверяем, что ответ отправлен с правильным статусом и данными
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        habit: mockHabit
+      });
+    });
+    
+    it('должен возвращать ошибку, если привычка не найдена', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'nonexistent' };
+      
+      // Мокаем метод findById, который не находит привычку
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(null);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await getHabitById(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Привычка не найдена'
+      });
+    });
+    
+    it('должен проверять, что привычка принадлежит пользователю', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit456' };
+      
+      // Мокаем данные привычки, которая принадлежит другому пользователю
+      const mockHabit = {
+        _id: 'habit456',
+        title: 'Чужая привычка',
+        user: 'other_user',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(mockHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await getHabitById(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой доступа
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Нет доступа к этой привычке'
+      });
+    });
+    
+    it('должен обрабатывать ошибки базы данных', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit123' };
+      
+      // Мокаем ошибку при запросе
+      const errorMessage = 'Ошибка базы данных';
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockRejectedValueOnce(new Error(errorMessage));
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await getHabitById(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой
+      expect(mockResponse.status).toHaveBeenCalledWith(500);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Внутренняя ошибка сервера'
+      });
+    });
+  });
+  
+  describe('updateHabit', () => {
+    it('должен обновлять привычку успешно', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit123' };
+      
+      // Данные для обновления
+      const updateData = {
+        title: 'Обновленная привычка',
+        description: 'Новое описание',
+        frequency: HabitFrequency.WEEKLY,
+        category: HabitCategory.EDUCATION,
+        priority: HabitPriority.HIGH
+      };
+      
+      mockRequest.body = updateData;
+      
+      // Мокаем существующую привычку
+      const existingHabit = {
+        _id: 'habit123',
+        title: 'Старая привычка',
+        description: 'Старое описание',
+        user: 'user123',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH,
+        priority: HabitPriority.MEDIUM
+      };
+      
+      // Мокаем обновленную привычку
+      const updatedHabit = {
+        ...existingHabit,
+        ...updateData
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(existingHabit);
+      
+      // Мокаем метод findByIdAndUpdate
+      const mockFindByIdAndUpdate = jest.fn().mockReturnThis();
+      const mockExecUpdate = jest.fn().mockResolvedValueOnce(updatedHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      (HabitModel.findByIdAndUpdate as jest.Mock) = mockFindByIdAndUpdate;
+      mockFindByIdAndUpdate.mockReturnValue({ exec: mockExecUpdate });
+      
+      // Вызываем функцию контроллера
+      await updateHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что findById вызван с правильными параметрами
+      expect(mockFindById).toHaveBeenCalledWith('habit123');
+      
+      // Проверяем, что findByIdAndUpdate вызван с правильными параметрами
+      expect(mockFindByIdAndUpdate).toHaveBeenCalledWith(
+        'habit123',
+        updateData,
+        { new: true }
+      );
+      
+      // Проверяем, что ответ отправлен с правильным статусом и данными
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        habit: updatedHabit
+      });
+    });
+    
+    it('должен возвращать ошибку, если привычка не найдена', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'nonexistent' };
+      
+      // Данные для обновления
+      const updateData = {
+        title: 'Обновленная привычка'
+      };
+      
+      mockRequest.body = updateData;
+      
+      // Мокаем метод findById, который не находит привычку
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(null);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await updateHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Привычка не найдена'
+      });
+    });
+    
+    it('должен проверять, что привычка принадлежит пользователю', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit456' };
+      
+      // Данные для обновления
+      const updateData = {
+        title: 'Обновленная привычка'
+      };
+      
+      mockRequest.body = updateData;
+      
+      // Мокаем данные привычки, которая принадлежит другому пользователю
+      const mockHabit = {
+        _id: 'habit456',
+        title: 'Чужая привычка',
+        user: 'other_user',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(mockHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await updateHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой доступа
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Нет доступа к этой привычке'
+      });
+    });
+  });
+  
+  describe('deleteHabit', () => {
+    it('должен удалять привычку успешно', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit123' };
+      
+      // Мокаем существующую привычку
+      const existingHabit = {
+        _id: 'habit123',
+        title: 'Привычка для удаления',
+        user: 'user123',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(existingHabit);
+      
+      // Мокаем метод findByIdAndDelete
+      const mockFindByIdAndDelete = jest.fn().mockReturnThis();
+      const mockExecDelete = jest.fn().mockResolvedValueOnce(existingHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      (HabitModel.findByIdAndDelete as jest.Mock) = mockFindByIdAndDelete;
+      mockFindByIdAndDelete.mockReturnValue({ exec: mockExecDelete });
+      
+      // Вызываем функцию контроллера
+      await deleteHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что findById вызван с правильными параметрами
+      expect(mockFindById).toHaveBeenCalledWith('habit123');
+      
+      // Проверяем, что findByIdAndDelete вызван с правильными параметрами
+      expect(mockFindByIdAndDelete).toHaveBeenCalledWith('habit123');
+      
+      // Проверяем, что ответ отправлен с правильным статусом и данными
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: true,
+        message: 'Привычка успешно удалена'
+      });
+    });
+    
+    it('должен возвращать ошибку, если привычка не найдена', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'nonexistent' };
+      
+      // Мокаем метод findById, который не находит привычку
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(null);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await deleteHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой
+      expect(mockResponse.status).toHaveBeenCalledWith(404);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Привычка не найдена'
+      });
+    });
+    
+    it('должен проверять, что привычка принадлежит пользователю', async () => {
+      // Настраиваем параметры запроса
+      mockRequest.params = { id: 'habit456' };
+      
+      // Мокаем данные привычки, которая принадлежит другому пользователю
+      const mockHabit = {
+        _id: 'habit456',
+        title: 'Чужая привычка',
+        user: 'other_user',
+        frequency: HabitFrequency.DAILY,
+        category: HabitCategory.HEALTH
+      };
+      
+      // Мокаем метод findById
+      const mockFindById = jest.fn().mockReturnThis();
+      const mockExec = jest.fn().mockResolvedValueOnce(mockHabit);
+      
+      // Подменяем методы на моки
+      (HabitModel.findById as jest.Mock) = mockFindById;
+      mockFindById.mockReturnValue({ exec: mockExec });
+      
+      // Вызываем функцию контроллера
+      await deleteHabit(
+        mockRequest as AuthenticatedRequest, 
+        mockResponse as Response
+      );
+      
+      // Проверяем, что ответ отправлен с ошибкой доступа
+      expect(mockResponse.status).toHaveBeenCalledWith(403);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        success: false,
+        error: 'Нет доступа к этой привычке'
       });
     });
   });

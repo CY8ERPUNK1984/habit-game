@@ -17,6 +17,7 @@ module.exports = {
     '/dist/',
     '__tests__'
   ],
+  setupFiles: ['<rootDir>/src/backend/tests/polyfills/text-encoder.js'],
   setupFilesAfterEnv: ['<rootDir>/src/backend/tests/setup.ts'],
   verbose: true,
   globals: {

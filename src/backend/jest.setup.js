@@ -1,3 +1,7 @@
+// Добавляем полифилл для TextEncoder и TextDecoder
+global.TextEncoder = require('util').TextEncoder;
+global.TextDecoder = require('util').TextDecoder;
+
 // Увеличиваем таймаут для тестов
 jest.setTimeout(30000);
 
