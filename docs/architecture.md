@@ -28,7 +28,58 @@ graph TD
         DB --> Habits[Привычки]
         DB --> Tasks[Задачи]
         DB --> Achievements[Достижения]
+        DB --> UserAchievements[Пользовательские достижения]
     end
+```
+
+## Структура проекта
+
+Проект организован как монорепозиторий с использованием workspaces в npm, что позволяет более гибко управлять зависимостями и обеспечивает удобную разработку как фронтенда, так и бэкенда.
+
+```mermaid
+graph TD
+    Root[/habit-game/] --> PackageJson[package.json]
+    Root --> Src[/src/]
+    Root --> Docs[/docs/]
+    Root --> Tests[/tests/]
+    Root --> Config[Конфигурационные файлы]
+    
+    Src --> Frontend[/frontend/]
+    Src --> Backend[/backend/]
+    
+    Frontend --> FComponents[/components/]
+    Frontend --> FApp[/app/]
+    Frontend --> FContexts[/contexts/]
+    Frontend --> FHooks[/hooks/]
+    Frontend --> FLib[/lib/]
+    Frontend --> FPublic[/public/]
+    Frontend --> FStyles[/styles/]
+    Frontend --> FTypes[/types/]
+    
+    Backend --> BConfig[/config/]
+    Backend --> BControllers[/controllers/]
+    Backend --> BMiddleware[/middleware/]
+    Backend --> BModels[/models/]
+    Backend --> BRoutes[/routes/]
+    Backend --> BServices[/services/]
+    Backend --> BUtils[/utils/]
+    Backend --> BTests[/tests/]
+    
+    Docs --> Architecture[architecture.md]
+    Docs --> ApiDoc[api-documentation.md]
+    Docs --> TestingStrategy[testing-strategy.md]
+    Docs --> UiDesign[ui-design.md]
+    Docs --> DataModels[data-models.md]
+    Docs --> DevProcess[development-process.md]
+    Docs --> TechStack[tech-stack.md]
+    Docs --> CiCd[ci-cd.md]
+    
+    Config --> GitHubWorkflows[/.github/workflows/]
+    Config --> Docker[Dockerfile]
+    Config --> DockerCompose[docker-compose.yml]
+    Config --> Jest[jest.config.js]
+    Config --> Eslint[.eslintrc.js]
+    Config --> Tsconfig[tsconfig.json]
 ```
 
 ## Архитектура фронтенда
@@ -73,6 +124,66 @@ graph TD
     end
 ```
 
+### Детальная структура фронтенда
+
+```mermaid
+graph TD
+    subgraph Next.js App Router
+        RootLayout[RootLayout] --> AppPages[App Pages]
+        AppPages --> HomePage[HomePage]
+        AppPages --> DashboardPage[DashboardPage]
+        AppPages --> HabitsPage[HabitsPage]
+        AppPages --> TasksPage[TasksPage]
+        AppPages --> AchievementsPage[AchievementsPage]
+        AppPages --> ProfilePage[ProfilePage]
+    end
+    
+    subgraph Components
+        UI[UI Components] --> Header[Header]
+        UI --> Footer[Footer]
+        UI --> Button[Button]
+        UI --> Card[Card]
+        UI --> Input[Input]
+        UI --> Modal[Modal]
+        
+        Feature[Feature Components] --> HabitForm[HabitForm]
+        Feature --> HabitList[HabitList]
+        Feature --> TaskForm[TaskForm]
+        Feature --> TaskList[TaskList]
+        Feature --> AchievementCard[AchievementCard]
+        Feature --> LevelProgress[LevelProgress]
+    end
+    
+    subgraph State Management
+        Contexts[React Contexts] --> AuthContext[AuthContext]
+        Contexts --> ThemeContext[ThemeContext]
+        Contexts --> NotificationContext[NotificationContext]
+        
+        Hooks[Custom Hooks] --> useAuth[useAuth]
+        Hooks --> useHabits[useHabits]
+        Hooks --> useTasks[useTasks]
+        Hooks --> useAchievements[useAchievements]
+        Hooks --> useStats[useStats]
+    end
+    
+    subgraph API Communication
+        ApiServices[API Services] --> AuthService[AuthService]
+        ApiServices --> HabitService[HabitService]
+        ApiServices --> TaskService[TaskService]
+        ApiServices --> UserService[UserService]
+        ApiServices --> AchievementService[AchievementService]
+        
+        FetchWrapper[Fetch Wrapper] --> ApiInterceptor[API Interceptor]
+        FetchWrapper --> ErrorHandler[Error Handler]
+        
+        AuthService --> FetchWrapper
+        HabitService --> FetchWrapper
+        TaskService --> FetchWrapper
+        UserService --> FetchWrapper
+        AchievementService --> FetchWrapper
+    end
+```
+
 ## Архитектура бэкенда
 
 Бэкенд построен на основе Node.js и Express с использованием MongoDB в качестве базы данных.
@@ -110,6 +221,71 @@ graph TD
     Database --> MongoDB[(MongoDB)]
 ```
 
+### Детальная структура бэкенда
+
+```mermaid
+graph TD
+    subgraph Core Infrastructure
+        App[Express App] --> ConfigLoader[Config Loader]
+        App --> DatabaseConnector[Database Connector]
+        App --> RoutesLoader[Routes Loader]
+        App --> MiddlewareLoader[Middleware Loader]
+        
+        ConfigLoader --> EnvConfig[Environment Config]
+        ConfigLoader --> LoggerConfig[Logger Config]
+        
+        DatabaseConnector --> MongooseConnection[Mongoose Connection]
+        DatabaseConnector --> Seeder[Database Seeder]
+    end
+    
+    subgraph API Layers
+        RoutesLoader --> AuthRoutes[Auth Routes]
+        RoutesLoader --> UserRoutes[User Routes]
+        RoutesLoader --> HabitRoutes[Habit Routes]
+        RoutesLoader --> TaskRoutes[Task Routes]
+        RoutesLoader --> AchievementRoutes[Achievement Routes]
+        
+        AuthRoutes --> AuthController[Auth Controller]
+        UserRoutes --> UserController[User Controller]
+        HabitRoutes --> HabitController[Habit Controller]
+        TaskRoutes --> TaskController[Task Controller]
+        AchievementRoutes --> AchievementController[Achievement Controller]
+        
+        AuthController --> AuthService[Auth Service]
+        UserController --> UserService[User Service]
+        HabitController --> HabitService[Habit Service]
+        TaskController --> TaskService[Task Service]
+        AchievementController --> AchievementService[Achievement Service]
+        
+        AuthService --> UserModel[User Model]
+        UserService --> UserModel
+        HabitService --> HabitModel[Habit Model]
+        TaskService --> TaskModel[Task Model]
+        AchievementService --> AchievementModel[Achievement Model]
+        AchievementService --> UserAchievementModel[UserAchievement Model]
+    end
+    
+    subgraph Middleware
+        MiddlewareLoader --> AuthMiddleware[Auth Middleware]
+        MiddlewareLoader --> ErrorMiddleware[Error Middleware]
+        MiddlewareLoader --> ValidationMiddleware[Validation Middleware]
+        MiddlewareLoader --> LoggingMiddleware[Logging Middleware]
+        
+        AuthMiddleware --> JwtService[JWT Service]
+        ValidationMiddleware --> JoiValidator[Joi Validator]
+        LoggingMiddleware --> LoggerService[Logger Service]
+    end
+    
+    subgraph Utilities
+        JwtService --> Crypto[Crypto Utilities]
+        LoggerService --> Winston[Winston Logger]
+        
+        Utils[Utilities] --> DateUtils[Date Utilities]
+        Utils --> StringUtils[String Utilities]
+        Utils --> ObjectUtils[Object Utilities]
+    end
+```
+
 ## Схема базы данных
 
 База данных MongoDB содержит следующие коллекции:
@@ -117,64 +293,79 @@ graph TD
 ```mermaid
 erDiagram
     USER {
-        string _id
-        string username
+        string _id PK
+        string name
+        string email
         string password
+        string avatar
         int level
-        int xp
-        float startingWeight
-        float currentWeight
-        float targetWeight
-        int daysWithoutGames
-        int longestStreakGames
-        int projectsCreated
-        int daysCoding
-        int cyclingWorkouts
-        int workTasks
-        array achievements
-        boolean notifications
+        int experience
         date createdAt
         date updatedAt
     }
     
     HABIT {
-        string _id
-        string userId
-        string name
+        string _id PK
+        string title
         string description
-        int progress
-        int goal
-        array history
+        string user FK
+        enum frequency
+        array customFrequencyDays
+        enum category
+        enum priority
+        int streak
+        boolean completedToday
+        array completionHistory
+        int experiencePoints
+        date startDate
+        date targetEndDate
+        time reminderTime
         date createdAt
         date updatedAt
     }
     
     TASK {
-        string _id
-        string userId
+        string _id PK
         string title
         string description
-        string size
-        boolean completed
-        date completedAt
+        string user FK
+        enum size
+        enum status
+        int experiencePoints
+        date dueDate
+        date completedDate
+        array tags
         date createdAt
         date updatedAt
     }
     
     ACHIEVEMENT {
-        string _id
-        string userId
-        string name
+        string _id PK
+        string title
         string description
+        enum type
         string icon
-        boolean unlocked
-        date unlockedAt
+        int experienceReward
+        int requiredValue
+        boolean isVisible
+        boolean isGlobal
         date createdAt
+        date updatedAt
     }
     
-    USER ||--o{ HABIT : has
-    USER ||--o{ TASK : has
-    USER ||--o{ ACHIEVEMENT : has
+    USER_ACHIEVEMENT {
+        string _id PK
+        string user FK
+        string achievement FK
+        date unlockedAt
+        date createdAt
+        date updatedAt
+    }
+    
+    USER ||--o{ HABIT : creates
+    USER ||--o{ TASK : creates
+    USER ||--o{ USER_ACHIEVEMENT : earns
+    ACHIEVEMENT ||--o{ USER_ACHIEVEMENT : awarded_to
 ```
 
 ## Процесс аутентификации
@@ -187,8 +378,8 @@ sequenceDiagram
     participant API as API
     participant DB as База данных
     
-    Client->>API: POST /api/auth/login (username, password)
-    API->>DB: Поиск пользователя по username
+    Client->>API: POST /api/auth/login (email, password)
+    API->>DB: Поиск пользователя по email
     DB-->>API: Данные пользователя
     
     alt Пользователь не найден
@@ -341,6 +532,49 @@ graph TD
     E2ETests --> SecurityTests[Тесты безопасности]
 ```
 
+### Детальная архитектура TDD процесса
+
+```mermaid
+graph LR
+    subgraph TDD Cycle
+        WriteTest[1. Написать тест] --> RunTest[2. Запустить тест]
+        RunTest --> FailedTest{Тест провален?}
+        FailedTest -->|Да| WriteCode[3. Написать код]
+        FailedTest -->|Нет| RefactorTest[Уточнить требования и переписать тест]
+        WriteCode --> RunTestAgain[4. Запустить тест снова]
+        RunTestAgain --> PassedTest{Тест пройден?}
+        PassedTest -->|Да| Refactor[5. Рефакторинг]
+        PassedTest -->|Нет| FixCode[Исправить код]
+        FixCode --> RunTestAgain
+        Refactor --> NextFeature[6. Следующая функция]
+        NextFeature --> WriteTest
+    end
+    
+    subgraph Testing Levels
+        Unit[Unit Testing] --> Component[Component Testing]
+        Component --> Integration[Integration Testing]
+        Integration --> System[System Testing]
+        System --> E2E[End-to-End Testing]
+    end
+    
+    subgraph Test Types
+        Functional[Functional Tests]
+        Performance[Performance Tests]
+        Security[Security Tests]
+        Usability[Usability Tests]
+        Regression[Regression Tests]
+    end
+    
+    Unit --> Functional
+    Component --> Functional
+    Integration --> Functional
+    System --> Functional
+    System --> Performance
+    System --> Security
+    E2E --> Usability
+    E2E --> Regression
+```
+
 ## Процесс CI/CD
 
 Процесс непрерывной интеграции и доставки:
@@ -352,19 +586,33 @@ graph TD
     
     subgraph CI
         Actions -->|Run| Lint[Линтинг]
-        Actions -->|Run| UnitTests[Unit-тесты]
-        Actions -->|Run| IntegrationTests[Интеграционные тесты]
-        Actions -->|Run| Build[Сборка]
+        Lint -->|Success| UnitTests[Unit-тесты]
+        UnitTests -->|Success| IntegrationTests[Интеграционные тесты]
+        IntegrationTests -->|Success| BackendTests[Backend Tests]
+        IntegrationTests -->|Success| FrontendTests[Frontend Tests]
+        BackendTests -->|Success| E2ETests[E2E Tests]
+        FrontendTests -->|Success| E2ETests
+        E2ETests -->|Success| SecurityAudit[Security Audit]
+        SecurityAudit -->|Success| Build[Сборка]
     end
     
     subgraph CD
         Build -->|Deploy to| Staging[Staging]
-        Staging -->|Manual approval| Production[Production]
+        Staging -->|Tests Pass| Production[Production]
     end
     
     Production -->|Frontend| Vercel[Vercel]
-    Production -->|Backend| Server[Server]
+    Production -->|Backend| Heroku[Heroku]
     Production -->|Database| MongoDB[MongoDB Atlas]
+    
+    subgraph Notifications
+        Vercel -->|Deployment Status| Slack[Slack]
+        Heroku -->|Deployment Status| Slack
+        Slack -->|Alert| Team[Команда]
+        Vercel -->|Deployment Status| Telegram[Telegram]
+        Heroku -->|Deployment Status| Telegram
+        Telegram -->|Alert| Team
+    end
 ```
 
 ## Архитектура мониторинга
@@ -386,5 +634,42 @@ graph TD
     subgraph Анализ
         Sentry -->|Анализ ошибок| ErrorAnalysis[Анализ ошибок]
         Grafana -->|Анализ производительности| PerformanceAnalysis[Анализ производительности]
+    end
+```
+
+## Архитектура развертывания
+
+```mermaid
+graph TD
+    subgraph Development
+        LocalDev[Локальная разработка] --> Docker[Docker]
+        LocalDev --> NPM[NPM Scripts]
+    end
+    
+    subgraph Staging
+        GitHubActions[GitHub Actions] --> VercelPreview[Vercel Preview]
+        GitHubActions --> HerokuStaging[Heroku Staging]
+        GitHubActions --> MongoDBAtlasDev[MongoDB Atlas Dev]
+    end
+    
+    subgraph Production
+        MainBranch[Main Branch] --> VercelProd[Vercel Production]
+        MainBranch --> HerokuProd[Heroku Production]
+        MainBranch --> MongoDBAtlasProd[MongoDB Atlas Prod]
+    end
+    
+    subgraph Scaling
+        HerokuProd --> AutoScaling[Auto Scaling]
+        VercelProd --> CDN[Content Delivery Network]
+        MongoDBAtlasProd --> Sharding[Database Sharding]
+        MongoDBAtlasProd --> Replication[Database Replication]
+    end
+    
+    subgraph Security
+        VercelProd --> SSL[SSL/TLS]
+        HerokuProd --> Firewall[Firewall]
+        MongoDBAtlasProd --> NetworkIsolation[Network Isolation]
+        SSL --> WAF[Web Application Firewall]
+        Firewall --> DDOS[DDoS Protection]
     end
 ``` 
