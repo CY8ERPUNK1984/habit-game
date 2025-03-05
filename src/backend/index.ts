@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
+import habitRoutes from './routes/habits.routes';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(express.json());
 // Маршруты
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
+app.use('/api/habits', habitRoutes);
 
 // Корневой маршрут
 app.get('/', (req, res) => {
