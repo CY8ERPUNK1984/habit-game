@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  experimental: {
+    forceSwcTransforms: true  // Принудительно использовать SWC даже при наличии babel.config.js
+  },
   images: {
     domains: ['localhost'],
   },

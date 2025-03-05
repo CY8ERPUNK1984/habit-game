@@ -181,8 +181,9 @@ describe('LoginPage Component', () => {
     
     render(<LoginPage />);
     
-    // Проверяем, что отображается индикатор загрузки
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // Проверяем, что отображается индикатор загрузки (используем querySelector для поиска элемента с классом)
+    const spinner = document.querySelector('.animate-spin');
+    expect(spinner).toBeInTheDocument();
     
     // И не отображается форма входа
     expect(screen.queryByText('Вход в аккаунт')).not.toBeInTheDocument();

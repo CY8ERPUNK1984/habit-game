@@ -41,4 +41,52 @@ global.fetch = jest.fn();
 // Очищаем все моки после каждого теста
 afterEach(() => {
   jest.clearAllMocks();
-}); 
+});
+
+// Добавляем необходимые настройки для тестирования React-компонентов
+
+// Мокаем localStorage
+const localStorageMock = (() => {
+  let store = {};
+  return {
+    getItem: (key) => store[key] || null,
+    setItem: (key, value) => {
+      store[key] = value.toString();
+    },
+    removeItem: (key) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    }
+  };
+})();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true
+});
+
+// Мокаем matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: () => ({
+    matches: false,
+    media: '',
+    onchange: null,
+    addListener: () => {}, // устаревший
+    removeListener: () => {}, // устаревший
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
+});
+
+// Подавляем предупреждения React
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (/Warning.*not wrapped in act/.test(args[0])) {
+    return;
+  }
+  originalConsoleError(...args);
+}; 

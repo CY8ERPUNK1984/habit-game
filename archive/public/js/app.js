@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Страница загружена. Версия: 1.0.1');
+
     // Глобальные переменные
     let currentUser = null;
     const API_URL = window.location.origin + '/api';
+    console.log('API URL:', API_URL);
     
     // DOM элементы
     const navItems = document.querySelectorAll('nav li');
@@ -323,6 +326,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function updateUserField(field, value) {
         try {
+            console.log(`Обновление поля ${field} на значение ${value} для пользователя ${currentUser.username}`);
+            console.log('URL запроса:', `${API_URL}/user/update`);
+            
             const response = await fetch(`${API_URL}/user/update`, {
                 method: 'POST',
                 headers: {
@@ -335,16 +341,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
             });
             
+            console.log('Статус ответа:', response.status);
+            const responseText = await response.text();
+            console.log('Текст ответа:', responseText);
+            
             if (!response.ok) {
-                throw new Error('Ошибка обновления данных');
+                throw new Error(`Ошибка обновления данных: ${responseText}`);
             }
             
-            const result = await response.json();
+            const result = JSON.parse(responseText);
             currentUser = result.user;
             
             return result;
         } catch (error) {
-            console.error('Ошибка:', error);
+            console.error('Ошибка при обновлении поля:', error);
+            showNotification(`Ошибка: ${error.message}`, 'error');
             throw error;
         }
     }
@@ -609,14 +620,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function showConfetti() {
-        if (typeof confetti === 'function') {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-        } else {
-            console.warn('Библиотека confetti не загружена');
+        console.log('Вызвана функция showConfetti. Функция confetti существует:', typeof confetti === 'function');
+        try {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                console.log('Конфетти запущены успешно');
+            } else {
+                console.warn('Библиотека confetti не загружена');
+            }
+        } catch (error) {
+            console.error('Ошибка при запуске конфетти:', error);
         }
     }
     
@@ -624,6 +641,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function addTodoItem() {
         const todoText = todoInput.value.trim();
         if (!todoText) return;
+        
+        console.log('Попытка добавления задачи:', todoText);
         
         // Проверяем, существует ли пользователь
         if (!currentUser) {
@@ -828,9 +847,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log('Сохранение данных пользователя:', JSON.stringify(currentUser));
+                console.log('URL запроса для получения данных:', `${API_URL}/user/${currentUser.username}`);
                 
                 // Сначала получаем актуальные данные с сервера
                 const getResponse = await fetch(`${API_URL}/user/${currentUser.username}`);
+                console.log('Статус ответа получения данных:', getResponse.status);
                 
                 if (!getResponse.ok) {
                     throw new Error('Не удалось получить актуальные данные пользователя');
@@ -846,6 +867,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
                 
                 console.log('Данные для отправки на сервер:', updatedData);
+                console.log('URL запроса для обновления:', `${API_URL}/user/${currentUser.username}`);
                 
                 const response = await fetch(`${API_URL}/user/${currentUser.username}`, {
                     method: 'PUT',

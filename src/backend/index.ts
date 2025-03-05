@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import profileRoutes from './routes/profile.routes';
 
 // Загрузка переменных окружения
 dotenv.config();
@@ -16,37 +17,32 @@ app.use(express.json());
 
 // Маршруты
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Корневой маршрут
 app.get('/', (req, res) => {
   res.json({ message: 'API для геймификации жизни' });
 });
 
-// Обработка ошибок
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: 'Внутренняя ошибка сервера',
-    error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
+// Подключение к MongoDB
+const connectDB = async () => {
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/habit-game');
+    console.log(`MongoDB подключен: ${conn.connection.host}`);
+  } catch (error) {
+    console.error(`Ошибка подключения к MongoDB: ${error instanceof Error ? error.message : error}`);
+    process.exit(1);
+  }
+};
 
-// Подключение к MongoDB и запуск сервера
-const PORT = process.env.PORT || 5000;
-const DB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/habit-game';
-
-mongoose
-  .connect(DB_URI)
-  .then(() => {
+// Запуск сервера
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(() => {
+    const PORT = process.env.PORT || 5001;
     app.listen(PORT, () => {
       console.log(`Сервер запущен на порту ${PORT}`);
-      console.log(`Подключен к MongoDB: ${DB_URI}`);
     });
-  })
-  .catch((err) => {
-    console.error('Ошибка при подключении к MongoDB:', err);
-    process.exit(1);
   });
+}
 
 export default app; 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { RegisterForm } from '../../components/Auth/RegisterForm';
+import RegisterForm from '../../components/Auth/RegisterForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -25,8 +25,9 @@ export default function RegisterPage() {
     try {
       await register(name, email, password);
       // Редирект произойдет автоматически при изменении isAuthenticated
-    } catch (err: any) {
-      setError(err.message || 'Ошибка при регистрации. Пожалуйста, попробуйте снова.');
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Ошибка при регистрации. Пожалуйста, попробуйте снова.';
+      setError(errorMessage);
     } finally {
       setIsRegistering(false);
     }

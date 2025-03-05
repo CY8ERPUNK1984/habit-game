@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, FormEvent } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface RegisterFormProps {
@@ -15,7 +15,8 @@ export default function RegisterForm({ onRegister, isLoading = false }: Register
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string; confirm?: string }>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const router = useRouter();
   
@@ -54,13 +55,19 @@ export default function RegisterForm({ onRegister, isLoading = false }: Register
     }
     
     try {
-      setIsLoading(true);
+      setIsSubmitting(true);
+      setErrorMessage(null);
       await onRegister(name, email, password);
       router.push('/login?registered=true');
     } catch (error) {
-      // Обработка ошибок выполняется на уровне страницы
+      // Обработка ошибок
+      if (error instanceof Error) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage('Произошла ошибка при регистрации');
+      }
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -80,6 +87,18 @@ export default function RegisterForm({ onRegister, isLoading = false }: Register
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit} data-testid="register-form">
+          {errorMessage && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800" data-testid="error-message">
+                    {errorMessage}
+                  </h3>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {Object.entries(errors).map(([key, value]) => (
             <div key={key} className="rounded-md bg-red-50 p-4">
               <div className="flex">
@@ -175,14 +194,14 @@ export default function RegisterForm({ onRegister, isLoading = false }: Register
             <button
               type="submit"
               className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isLoading
+                isLoading || isSubmitting
                   ? 'bg-blue-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
               }`}
-              disabled={isLoading}
+              disabled={isLoading || isSubmitting}
               data-testid="register-button"
             >
-              {isLoading ? (
+              {isLoading || isSubmitting ? (
                 <span className="flex items-center justify-center">
                   <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
