@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/frontend/contexts/AuthContext';
 import Link from 'next/link';
+import ExperienceBar from '@/frontend/components/User/ExperienceBar';
+import { getUserStats, UserStats } from '@/frontend/lib/api/stats';
 
 const ProfilePage: React.FC = () => {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, token, loading, isAuthenticated } = useAuth();
+  const [stats, setStats] = useState<UserStats>({ totalHabits: 0, completedCount: 0, longestStreak: 0 });
+  const [statsLoading, setStatsLoading] = useState(true);
   const router = useRouter();
 
   // Перенаправление на страницу входа, если пользователь не аутентифицирован
@@ -15,6 +19,37 @@ const ProfilePage: React.FC = () => {
       router.push('/login');
     }
   }, [loading, isAuthenticated, router]);
+
+  // Загрузка статистики пользователя
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (token) {
+        try {
+          setStatsLoading(true);
+          // В реальном приложении здесь будет запрос к API
+          // const userStats = await getUserStats(token);
+          // setStats(userStats);
+          
+          // Пока используем заглушку
+          setTimeout(() => {
+            setStats({
+              totalHabits: 5,
+              completedCount: 23,
+              longestStreak: 7
+            });
+            setStatsLoading(false);
+          }, 1000);
+        } catch (error) {
+          console.error('Ошибка при загрузке статистики:', error);
+          setStatsLoading(false);
+        }
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchStats();
+    }
+  }, [isAuthenticated, token]);
 
   // Если данные загружаются, показываем индикатор загрузки
   if (loading) {
@@ -51,14 +86,22 @@ const ProfilePage: React.FC = () => {
             <h2 className="text-2xl font-semibold">{user.name}</h2>
             <p className="text-gray-600 mb-2">{user.email}</p>
             
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 p-3 rounded">
-                <p className="text-sm text-gray-500">Уровень</p>
-                <p className="text-xl font-semibold">{user.level}</p>
-              </div>
-              <div className="bg-green-50 p-3 rounded">
-                <p className="text-sm text-gray-500">Опыт</p>
-                <p className="text-xl font-semibold">{user.experience}</p>
+            <div className="mt-4">
+              <ExperienceBar 
+                level={user.level} 
+                experience={user.experience}
+                className="mb-2"
+              />
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="bg-blue-50 p-3 rounded">
+                  <p className="text-sm text-gray-500">Уровень</p>
+                  <p className="text-xl font-semibold">{user.level}</p>
+                </div>
+                <div className="bg-green-50 p-3 rounded">
+                  <p className="text-sm text-gray-500">Опыт</p>
+                  <p className="text-xl font-semibold">{user.experience}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -77,9 +120,32 @@ const ProfilePage: React.FC = () => {
       
       <div className="bg-white shadow-md rounded-lg p-6">
         <h3 className="text-xl font-semibold mb-4">Статистика</h3>
-        <p className="text-gray-600">
-          Здесь будет отображаться ваша статистика по мере использования приложения.
-        </p>
+        {statsLoading ? (
+          <div className="text-center py-4">
+            <div className="spinner mb-2"></div>
+            <p>Загрузка статистики...</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-indigo-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Всего привычек</p>
+                <p className="text-xl font-semibold">{stats.totalHabits}</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Выполнено раз</p>
+                <p className="text-xl font-semibold">{stats.completedCount}</p>
+              </div>
+              <div className="bg-pink-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-500">Самая длинная серия</p>
+                <p className="text-xl font-semibold">{stats.longestStreak}</p>
+              </div>
+            </div>
+            <p className="text-gray-600 mt-4">
+              Статистика обновляется по мере использования приложения.
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

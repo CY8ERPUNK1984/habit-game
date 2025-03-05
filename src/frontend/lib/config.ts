@@ -1,5 +1,5 @@
 // API URL для разных окружений
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api';
 
 // Ключ для хранения токена в localStorage
 export const TOKEN_KEY = 'habit_game_token';

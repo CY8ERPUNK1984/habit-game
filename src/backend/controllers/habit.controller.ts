@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import HabitModel from '../models/Habit.model';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import gamificationService from '../services/gamification.service';
 
 /**
  * Создание новой привычки
@@ -332,9 +333,27 @@ export const completeHabit = async (req: AuthenticatedRequest, res: Response): P
       { new: true }
     );
     
+    // Начисление опыта пользователю
+    const earnedExperience = gamificationService.calculateExperienceForCompletingHabit(
+      habit.frequency,
+      habit.priority,
+      habit.streak + 1 // +1 потому что streak уже увеличен в updatedHabit
+    );
+    
+    // Обновляем опыт пользователя
+    const updatedUser = await gamificationService.updateUserExperience(
+      req.user.id,
+      earnedExperience
+    );
+    
+    // Добавляем информацию о заработанном опыте в ответ
     res.status(200).json({
       success: true,
-      habit: updatedHabit
+      habit: updatedHabit,
+      experienceGained: earnedExperience,
+      userLevel: updatedUser?.level || 0,
+      userExperience: updatedUser?.experience || 0,
+      levelUp: updatedUser && updatedUser.level && (habit.user as any).level ? updatedUser.level > (habit.user as any).level : false // Проверка повышения уровня
     });
   } catch (error) {
     console.error('Ошибка отметки выполнения привычки:', error);

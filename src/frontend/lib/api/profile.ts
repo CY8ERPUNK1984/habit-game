@@ -1,64 +1,47 @@
-import { fetchWithAuth } from './helpers';
+import { API_URL } from '../config';
+import { UserData } from './auth';
 
-export interface ProfileUpdateData {
+// Типы запросов
+export interface UpdateProfileData {
   name?: string;
   avatar?: string;
 }
 
-export interface ProfileResponse {
-  success: boolean;
-  user?: {
-    id: string;
-    name: string;
-    email: string;
-    level: number;
-    experience: number;
-    avatar: string;
-  };
-  error?: string;
+// Функция для получения профиля пользователя
+export async function getProfile(token: string): Promise<UserData> {
+  const response = await fetch(`${API_URL}/profile`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Ошибка при получении профиля');
+  }
+
+  const data = await response.json();
+  return data.user;
 }
 
-/**
- * Получение профиля пользователя
- */
-export const getProfile = async (): Promise<ProfileResponse> => {
-  try {
-    const response = await fetchWithAuth('/api/profile', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+// Функция для обновления профиля пользователя
+export async function updateProfile(token: string, data: UpdateProfileData): Promise<UserData> {
+  const response = await fetch(`${API_URL}/profile`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Не удалось получить данные профиля',
-    };
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || 'Ошибка при обновлении профиля');
   }
-};
 
-/**
- * Обновление профиля пользователя
- */
-export const updateProfile = async (profileData: ProfileUpdateData): Promise<ProfileResponse> => {
-  try {
-    const response = await fetchWithAuth('/api/profile', {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(profileData),
-    });
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    return {
-      success: false,
-      error: 'Не удалось обновить профиль',
-    };
-  }
-}; 
+  const responseData = await response.json();
+  return responseData.user;
+} 
